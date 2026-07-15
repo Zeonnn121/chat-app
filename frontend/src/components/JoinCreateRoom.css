@@ -1,0 +1,11 @@
+.heading {
+    color: inherit; /* use theme text color */
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row; /* horizontal alignment */
+    align-items: center;
+    justify-content: center;
+    gap: 12px; /* space between buttons */
+}
