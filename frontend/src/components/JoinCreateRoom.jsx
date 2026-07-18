@@ -10,7 +10,7 @@ import './JoinCreateRoom.css';
 import toast from 'react-hot-toast';
 import { createRoom as createRoomApi, JoinChatAPI } from '../services/RoomService';
 
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useChatContext } from '../context/ChatContext'; // ✅ named import
 
 const JoinCreateRoom = () => {
@@ -47,50 +47,55 @@ const JoinCreateRoom = () => {
       return true
   }
   async function JoinChat(){
-    if (validateJoinForm()){
-      //join room
-    try {  const room =
-await JoinChatAPI(detail.roomId)
-toast.success("joined..")
-     setCurrentUser(detail.userName.trim())
-      setRoomId(room.roomId) 
+    if (!validateJoinForm()) return
+
+    const trimmedRoomId = detail.roomId.trim()
+    const trimmedUserName = detail.userName.trim()
+
+    console.log('Joining room with:', { roomId: trimmedRoomId, userName: trimmedUserName })
+
+    try {
+      const room = await JoinChatAPI(trimmedRoomId)
+      console.log('Join API response:', room)
+
+      const resolvedRoomId = room?.roomId || trimmedRoomId
+      toast.success("joined..")
+      setCurrentUser(trimmedUserName)
+      setRoomId(resolvedRoomId)
       setConnected(true)
-    navigate("/chat")
-    } catch (error){
-      if (error.response?.status === 400){
-        toast.error(error.response.data)
-      } 
-      
-     else {  console.log(error);
-       
-        console.log("room already exists")
-     }
+      navigate("/chat", { state: { roomId: resolvedRoomId, currentUser: trimmedUserName } })
+    } catch (error) {
+      console.error('Join room failed:', error)
+      if (error.response?.status === 400) {
+        toast.error(error.response.data || 'Room not found')
+      } else {
+        toast.error('Unable to join room right now')
       }
-
-    
-} 
-
+    }
   }
   async function createRoom(){
-    if (validateCreateForm()) {
-      //create room
-      console.log(detail)
-      //call api to create room on backend
-      try {
-      const response = await createRoomApi(detail.roomId.trim())
-      console.log(response)
+    if (!validateCreateForm()) return
+
+    const trimmedRoomId = detail.roomId.trim()
+    const trimmedUserName = detail.userName.trim() || 'Guest'
+
+    console.log('Creating room with:', { roomId: trimmedRoomId, userName: trimmedUserName })
+
+    try {
+      const response = await createRoomApi(trimmedRoomId)
+      console.log('Create room response:', response)
+      const resolvedRoomId = response?.roomId || trimmedRoomId
       toast.success("Room created successfully")
-        setCurrentUser(detail.userName.trim() || "Guest")
-      setRoomId(response.roomId) 
+      setCurrentUser(trimmedUserName)
+      setRoomId(resolvedRoomId)
       setConnected(true)
-      navigate("/chat")
-      } catch (error){
-        console.log(error);
-        if (error.response?.status === 400){
-          toast.error("room already exists!")
-        } else {
-        console.log("error in creating the room")
-        }
+      navigate("/chat", { state: { roomId: resolvedRoomId, currentUser: trimmedUserName } })
+    } catch (error) {
+      console.error('Create room failed:', error)
+      if (error.response?.status === 400) {
+        toast.error("room already exists!")
+      } else {
+        toast.error('Unable to create room right now')
       }
     }
   }
