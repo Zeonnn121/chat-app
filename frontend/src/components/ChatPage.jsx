@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './ChatPage.css';
 import { useChatContext } from '../context/ChatContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import SockJS from 'sockjs-client';
 import { baseURL } from '../config/AxiosHelper';
 import { Stomp } from '@stomp/stompjs';
@@ -11,27 +11,13 @@ import { getMessages } from '../services/RoomService';
 const ChatPage = () => {
   const { roomId, currentUser, setConnected, setRoomId, setCurrentUser } = useChatContext();
   const navigate = useNavigate();
-  const location = useLocation();
-  const routedRoomId = location.state?.roomId;
-  const routedUserName = location.state?.currentUser;
-  const effectiveRoomId = roomId || routedRoomId || '';
-  const effectiveUserName = currentUser || routedUserName || 'Zeon';
-
-  useEffect(() => {
-    if (routedRoomId) {
-      setRoomId(routedRoomId);
-    }
-    if (routedUserName) {
-      setCurrentUser(routedUserName);
-    }
-  }, [routedRoomId, routedUserName, setRoomId, setCurrentUser]);
 
   // Redirect only when room context is missing (handles websocket connection race on first open)
   useEffect(() => {
-    if (!effectiveRoomId) navigate('/');
-  }, [effectiveRoomId, navigate]);
+    if (!roomId) navigate('/');
+  }, [roomId, navigate]);
 
-  const [username] = useState(effectiveUserName);
+  const [username] = useState(currentUser || 'Zeon');
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showHeader, setShowHeader] = useState(true);
@@ -52,14 +38,14 @@ const ChatPage = () => {
       }
     }
 
-    if (effectiveRoomId) {
+    if (roomId) {
       loadMessages();
     }
-  }, [effectiveRoomId]);
+  }, [roomId]);
 
   // ✅ WebSocket connection + scroll listener
   useEffect(() => {
-    if (!effectiveRoomId) return;
+    if (!roomId) return;
 
     const connectWebSocket = () => {
       const sock = new SockJS(`${baseURL}/chat`);
@@ -72,7 +58,7 @@ const ChatPage = () => {
           setConnected(true);
           toast.success('Connected to chat!');
 
-          client.subscribe(`/topic/room/${effectiveRoomId}`, (message) => {
+          client.subscribe(`/topic/room/${roomId}`, (message) => {
           const newMessage = JSON.parse(message.body);
           
           // ✅ Prevent duplicates by checking if message already exists
@@ -144,7 +130,7 @@ const ChatPage = () => {
     const newMsg = { 
       sender: username, 
       content: input, 
-      roomId: effectiveRoomId,
+      roomId: roomId,
       timestamp: timestamp
     };
 
@@ -153,7 +139,7 @@ const ChatPage = () => {
 
     if (stompClient && stompClient.connected) {
       // Don't optimistically update - wait for WebSocket broadcast
-      stompClient.send(`/app/sendMessage/${effectiveRoomId}`, {}, JSON.stringify(newMsg));
+      stompClient.send(`/app/sendMessage/${roomId}`, {}, JSON.stringify(newMsg));
       
       // The message will be added when received from the WebSocket subscription
       setIsSending(false);
@@ -207,7 +193,7 @@ const ChatPage = () => {
   };
 
   // Show loading state if no roomId
-  if (!effectiveRoomId) {
+  if (!roomId) {
     return <div>Loading...</div>;
   }
 
@@ -220,7 +206,7 @@ const ChatPage = () => {
         >
           <div>
             <h1 className="text-xl font-semibold">
-              Room: <span>{effectiveRoomId || 'Family Room'}</span>
+              Room: <span>{roomId || 'Family Room'}</span>
             </h1>
           </div>
           <div>
