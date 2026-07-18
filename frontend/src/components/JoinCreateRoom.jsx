@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField'; 
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
@@ -16,10 +16,9 @@ import { useChatContext } from '../context/ChatContext'; // ✅ named import
 const JoinCreateRoom = () => {
   const [detail,setDetail] = useState({
     roomId : "",
-    userName: "",
   })
 
-    const {setRoomId,setCurrentUser,setConnected} = useChatContext()
+  const {user, setRoomId, setCurrentUser, setConnected, logoutUser} = useChatContext()
   const navigate = useNavigate()
   function handleFormInputChange(event){
     setDetail({
@@ -27,52 +26,46 @@ const JoinCreateRoom = () => {
       [event.target.name]: event.target.value,
     })
   }
-  function validateJoinForm() {
+  function validateForm() {
       if (!detail.roomId.trim()) {
         toast.error("Room ID is required")
-        return false
-      }
-      if (!detail.userName.trim()) {
-        toast.error("User name is required to join")
         return false
       }
       return true
   }
 
-  function validateCreateForm() {
-      if (!detail.roomId.trim()) {
-        toast.error("Room ID is required")
-        return false
-      }
-      return true
+  function handleLogout() {
+    logoutUser()
+    navigate("/")
   }
+
   async function JoinChat(){
-    if (validateJoinForm()){
+    if (validateForm()){
       //join room
     try {  const room =
 await JoinChatAPI(detail.roomId)
 toast.success("joined..")
-     setCurrentUser(detail.userName.trim())
-      setRoomId(room.roomId) 
+     setCurrentUser(user)
+      setRoomId(room.roomId)
       setConnected(true)
     navigate("/chat")
     } catch (error){
       if (error.response?.status === 400){
         toast.error(error.response.data)
-      } 
-      
+      }
+
      else {  console.log(error);
-       
+
         console.log("room already exists")
      }
       }
 
-    
-} 
+
+}
 
   }
   async function createRoom(){
-    if (validateCreateForm()) {
+    if (validateForm()) {
       //create room
       console.log(detail)
       //call api to create room on backend
@@ -80,8 +73,8 @@ toast.success("joined..")
       const response = await createRoomApi(detail.roomId.trim())
       console.log(response)
       toast.success("Room created successfully")
-        setCurrentUser(detail.userName.trim() || "Guest")
-      setRoomId(response.roomId) 
+      setCurrentUser(user)
+      setRoomId(response.roomId)
       setConnected(true)
       navigate("/chat")
       } catch (error){
@@ -143,25 +136,39 @@ toast.success("joined..")
             >
               Join or Create a Room
             </Typography>
-          
+            <Typography
+              variant="body2"
+              sx={{ textAlign: 'center', color: 'text.secondary', mt: 0.5 }}
+            >
+              Logged in as <strong>{user}</strong>
+            </Typography>
           </Box>
 
           <Divider sx={{ my: 0 }} />
 
           <Stack spacing={1.5}>
-            <TextField onChange={ handleFormInputChange} value={detail.userName} name='userName'  id="user-name" label="Your name" variant="outlined" fullWidth size="medium" />
-            <TextField name='roomId' onChange={handleFormInputChange}value={detail.roomId} id="room-id" label="Room ID (or new)" variant="outlined" fullWidth size="medium" />
+            <TextField name='roomId' onChange={handleFormInputChange} value={detail.roomId} id="room-id" label="Room ID (or new)" variant="outlined" fullWidth size="medium" />
           </Stack>
 
           {/* Actions: responsive horizontal on sm+, stacked on xs */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ pt: 0.5 }}>
-            <Button onClick={JoinChat}variant="contained" color="secondary" fullWidth disableElevation>
+            <Button onClick={JoinChat} variant="contained" color="secondary" fullWidth disableElevation>
               Join Room
             </Button>
             <Button variant="outlined" onClick={createRoom} color="primary" fullWidth>
               Create Room
             </Button>
           </Stack>
+
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={handleLogout}
+            sx={{ textTransform: 'none', color: 'text.secondary' }}
+          >
+            Log out
+          </Button>
         </Stack>
       </Paper>
     </Box>
